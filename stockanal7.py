@@ -121,3 +121,5 @@ total_amount_buy_sell_by_instrument = df_buy_sell.groupby('Instrument')['Amount 
 
 # Print the summed amounts for each instrument
 print(total_amount_buy_sell_by_instrument.to_string())
+
+print('Jimmy made a change')
