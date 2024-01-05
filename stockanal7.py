@@ -7,14 +7,14 @@ file_path = 'alltimebroker2023.csv'  # Adjust the file path as needed
 df = pd.read_csv(file_path, usecols=range(9))
 
 # Convert 'Activity Date' to DateTime and 'Amount' to numeric
- df['Activity Date'] = pd.to_datetime(df['Activity Date'])
+df['Activity Date'] = pd.to_datetime(df['Activity Date'])
 df['Amount'] = df['Amount'].replace('[\$,)]', '', regex=True).replace('[(]', '-', regex=True).astype(float)
 
 
 # Group by year, month, and 'Instrument', then sum the 'Amount' for 'STO' and 'BTC' transactions
 #grouped_data = df[df['Trans Code'].isin(['STO', 'BTC'])].groupby([df['Activity Date'].dt.year, df['Activity Date'].dt.month, 'Instrument'])['Amount'].sum()
 # Group by year, month, and 'Instrument', then sum the 'Amount' for 'STO' and 'BTC' transactions
-grouped_data = df[df['Trans Code'].isin(['STO', 'BTC'])].groupby([df['Activity Date'].dt.year, df['Activity Date'].dt.month, 'Instrument'])['Amount'].sum()
+grouped_data = df[df['Trans Code'].isin(['STO', 'BTC', 'CDIV'])].groupby([df['Activity Date'].dt.year, df['Activity Date'].dt.month, 'Instrument'])['Amount'].sum()
 
 
 # annual_top_instrument = grouped_data.groupby(level=1).sum().idxmax()
@@ -101,7 +101,7 @@ def convert_amount(value):
 
 # Apply the conversion function to each value in the 'Amount' column
 df['Amount Cleaned'] = df['Amount'].apply(convert_amount)
-
+'''
 # Filter the DataFrame to include only rows where 'Trans Code' is 'Buy' or 'Sell'
 df_buy_sell = df[df['Trans Code'].isin(['Buy', 'Sell'])]
 
@@ -154,3 +154,39 @@ total_adjusted_quantity_amount_by_year_instrument = df_buy_sell.groupby(['Year',
 
 # Displaying the result
 print(total_adjusted_quantity_amount_by_year_instrument.to_string())
+'''
+
+# Function to convert the 'Amount' column to numeric
+
+
+# Applying the conversion function to the 'Amount' column
+df['Amount Cleaned'] = df['Amount'].apply(convert_amount)
+
+# Convert 'Quantity' column to numeric (assuming it's currently a string)
+df['Quantity'] = pd.to_numeric(df['Quantity'], errors='coerce')
+
+# Filtering for only 'Buy' and 'Sell' transactions
+df_buy_sell = df[df['Trans Code'].isin(['Buy', 'Sell'])]
+
+# Adjusting quantity based on transaction type
+df_buy_sell['Adjusted Quantity'] = df_buy_sell.apply(lambda row: row['Quantity'] if row['Trans Code'] == 'Buy' else -row['Quantity'], axis=1)
+
+# Grouping by 'Instrument' and summing the 'Adjusted Quantity' column
+total_quantity_by_instrument = df_buy_sell.groupby('Instrument')['Adjusted Quantity'].sum().round()
+
+# Remove entries with zero quantity
+non_zero_quantities = total_quantity_by_instrument[total_quantity_by_instrument != 0]
+
+# Filter out stocks with positive quantity (stocks you own)
+stocks_sold_or_none_owned = df_buy_sell.groupby('Instrument').filter(lambda x: x['Adjusted Quantity'].sum() <= 0)
+
+# Summing the total amount for stocks sold or none owned, and rounding to two decimal places
+total_amount = stocks_sold_or_none_owned['Amount Cleaned'].sum().round(2)
+
+# Display the total quantity owned for each instrument, excluding zero quantities
+print("Total Quantity Owned by Instrument (Excluding Zero Quantities):")
+print(non_zero_quantities.to_string())
+
+# Display the total amount (profit or loss) for stocks sold or none owned, rounded to two decimal places
+print("\nTotal Amount (Profit/Loss) for Stocks Sold or None Owned:")
+print(total_amount)
