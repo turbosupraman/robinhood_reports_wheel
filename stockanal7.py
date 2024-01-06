@@ -83,8 +83,9 @@ sorted_instruments = total_profit_per_instrument.sort_values(ascending=False)
 
 # Display sorted instruments with their total profit
 print("Instruments Sorted by Total Profit:")
-print(sorted_instruments)
+print(sorted_instruments.to_string()) # JD
 
+print('/n/n')
 print(f"Total profits{cumulative_profits[-5:]}")
 
 
